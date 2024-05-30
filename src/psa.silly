@@ -1,0 +1,13 @@
+  const burl='https://nicky.abgl.live/api/board';
+  let brawdata = await fetch(burl, {
+    headers: {
+      "board": current_board
+    },
+  })
+
+  try {
+    let bdata = await brawdata.json();
+    document.getElementById("post_qty").innerText = `this board has ${bdata.post_qty} posts`
+  } catch (error) {
+    document.getElementById("post_qty").innerText = `this board in empty`
+  } 

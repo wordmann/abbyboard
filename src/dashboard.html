@@ -1,0 +1,154 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <base href="/">
+  <link rel="stylesheet" type="text/css" href="output.css" >
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.1.1/css/all.min.css" integrity="sha512-KfkfwYDsLkIlwQp6LFnl8zNdLGxu9YAA1QvwINks4PhcElQSvqcyVLLD9aMhXd13uQjoXtEKNosOWaZqXgel0g==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+  <script src="dash.js"></script>
+  <title>AbbyBoard</title>
+</head>
+<body onload="onPageLoad()">
+
+    <div class="divvone">
+
+        <div class="sidebar">
+            <div class="staticinfo">
+              <h1>AbbyBoard v1.3</h1>
+              <p>yeah its broken no one was using this anyways have fun looking around</p>
+              <p>Hi! I'm Abby aka wordrc. This is my first time making an actual web app that's interactive and dynamic and all that, so please be nice &lt;3 
+              <br>Rules are: NO Bigotry/harrasment ecc you know the deal. NO incredibly explicit images.</p>
+              <p>For posts taller then 500px you might wonna open them in another tab!
+              <br>To see every post, try the 'all' board!
+              <br><b>currently may be a little broken, i am too lazy to fix this.</b>
+              <br>
+                  For issues <a href="https://www.tumblr.com/wordrc" target="_blank">dm me on tumbrl</a>
+              </p>
+          </div>
+            <div id="login_info">
+                <div class="req_login login_info">
+                    <img src='' id="avatar"/>
+                    <div style="display: block;">
+                    <h2 id="name"></h2>
+                    <button class="logout" onclick="localStorage.clear();window.location.href = '/'">LOGOUT</button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="req_login">
+                <label for="testimg"><span id="inputlabel"> Select File </span>
+                <input onchange="updateInputLabel()" type="file" id="testimg" name="testimg" accept="image/png image/png">
+                </label>
+                <button name="submit" onclick="sendimg()">Send</button>
+            </div>
+
+            <h4 id="outcome"></h4>
+
+            <div class="req_login">
+                <div class="canvasdiv">
+                    <canvas id="drawingCanvas" width="300" height="300"></canvas>
+                  
+                    <script>
+                      // Get the canvas element
+                      const canvas = document.getElementById("drawingCanvas");
+                      const context = canvas.getContext("2d");
+                  
+                      // Set initial stroke color and width
+                      context.strokeStyle = "black";
+                      context.lineWidth = 8;
+                  
+                      let isDrawing = false;
+                  
+                      // Event listeners for drawing
+                      canvas.addEventListener("mousedown", startDrawing);
+                      canvas.addEventListener("mousemove", draw);
+                      canvas.addEventListener("mouseup", stopDrawing);
+                      canvas.addEventListener("mouseout", stopDrawing);
+                  
+                      function startDrawing(event) {
+                        isDrawing = true;
+                        const { offsetX, offsetY } = event;
+                        context.beginPath();
+                        context.moveTo(offsetX, offsetY);
+                      }
+                  
+                      function draw(event) {
+                        if (!isDrawing) return;
+                        const { offsetX, offsetY } = event;
+                        context.lineTo(offsetX, offsetY);
+                        context.stroke();
+                      }
+                  
+                      function stopDrawing() {
+                        isDrawing = false;
+                      }
+                  
+                      // Clear the canvas
+                      function clearCanvas() {
+                        context.clearRect(0, 0, canvas.width, canvas.height);
+                      }
+                  
+                      // Set the stroke color to black
+                      function setBlackColor() {
+                        context.strokeStyle = "black";
+                      }
+                  
+                      // Set the stroke color to white
+                      function setWhiteColor() {
+                        context.strokeStyle = "white";
+                      }
+                  
+                      
+                  
+                    </script>
+                  
+                    <div class="canvasbuttons">
+                      <button onclick="clearCanvas()">Clear Canvas</button>
+                      <button onclick="setBlackColor()">Black</button>
+                      <button onclick="setWhiteColor()">White</button>
+                      <button onclick="saveImage(document.getElementById('drawingCanvas').toDataURL('image/png', 1.0))">Post to board</button>
+                    </div>
+                </div>
+            </div>
+
+            <p>CHANGELOG
+              <br>v1.3 20/7/23 - Multiboard! You can now post in different boards, you don't have to create them. (this is still wip and more things need to be addeed)
+              <br>v1.2 15/7/23 - Added jpeg support! Also UI inprovements.◘
+              <br>v1.1 - Mobile support + the canvas for silly drawings
+            </p>
+
+        </div>
+
+        <div class="mainbar">
+            <h4 id="outcome2"></h4>
+            <button name="loadmore" onclick="getFeed(pages_loaded)">RELOAD</button>
+            <div id="util_buttons" class="req_login">
+                <button name="deletepost" onclick="if (interactMode == 'delete') interactMode = 'none';else interactMode = 'delete';oc2.innerText = 'Interaction mode: ' + interactMode;">DELETE POST</button>
+              </div>
+
+            <div class="boardbar">
+              <h3>board ><span id="curBoard"></span></h3>
+              <div>
+                <input type="text" name="" id="boardselector" placeholder="Insert new board name...">
+                <button onclick="changeBoard()">GO</button>
+              </div>
+              <span id="post_qty">this board has&nbsp0&nbspposts</span>
+            </div>
+
+
+            <div class="feed-container" id="feedc"></div>
+
+            <button name="loadmore" onclick="loadMore()">LOAD MORE</button>
+        </div>
+          
+    </div>
+        
+      <div class="footer"> 
+
+        <p class="credits">
+        </p>
+
+      </div>
+</body>
+</html>

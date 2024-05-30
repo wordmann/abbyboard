@@ -1,0 +1,23 @@
+{
+  "name": "abbyboard",
+  "version": "1.0.0",
+  "description": "simple imageboard made by abby for fun -",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "node index.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "WIP"
+  },
+  "author": "wordrc@abgl.live",
+  "license": "MIT",
+  "dependencies": {
+    "body-parser": "^1.20.2",
+    "express": "^4.19.2",
+    "fs": "^0.0.1-security",
+    "path": "^0.12.7",
+    "pg": "^8.11.5"
+  }
+}
