@@ -1,6 +1,7 @@
 //const { response } = require("express");
 
 console.log("dash.js loaded")
+const baseurl = 'https://nicky.abgl.live/'
 
 // Get token from url
 const fragment = new URLSearchParams(window.location.hash.slice(1));
@@ -79,7 +80,7 @@ async function checkFlags() {
   
   const uid = await getDiscordId(tokenType + " " + accessToken).then(value => {return value})
 
-  const url='https://nicky.abgl.live/api/flags';
+  const url=baseurl + 'api/flags';
 	let rawdata = await fetch(url, {
 		headers: {
 			'uid': uid,
@@ -122,7 +123,7 @@ async function interact(img){
     console.log("attempting ban")
 
     // Banning uses your token to verify you're an admin. It deletes all of the posts by the person who made the post you clicked. Careful not to click your own post ahah (that surely had never happened)
-    const url='https://nicky.abgl.live/api/ban';
+    const url=baseurl + 'api/ban';
     let rawdata = await fetch(url, {
       method: "POST",
       headers: {
@@ -143,7 +144,7 @@ async function interact(img){
     console.log("attempting deletion")
 
     // Deleting checks if the post you clicked is yours and only deletes it then. unless you're an admin
-    const url='https://nicky.abgl.live/api/deletepost';
+    const url=baseurl + 'api/deletepost';
     let rawdata = await fetch(url, {
       method: "POST",
       headers: {
@@ -225,7 +226,7 @@ const fileInput = document.getElementById('testimg');
 async function saveImage(dataUrl) {
   
   // Server just needs your token to see who makes a post and the dataUrl for the image, response messages are handled by the server
-  const url='https://nicky.abgl.live/api/postimg';
+  const url=baseurl + 'api/postimg';
   let rawdata = await fetch(url, {
     method: "POST",
     headers: {
@@ -248,7 +249,7 @@ async function getFeed(page) {
 
   document.getElementById("curBoard").innerText = current_board;
 
-  const url='https://nicky.abgl.live/api/feed';
+  const url=baseurl + 'api/feed';
   let rawdata = await fetch(url, {
     headers: {
       "page": page,
@@ -260,7 +261,7 @@ async function getFeed(page) {
   
   const feedc = document.getElementById("feedc");
 
-  const burl='https://nicky.abgl.live/api/board';
+  const burl=baseurl + 'api/board';
   let brawdata = await fetch(burl, {
     headers: {
       "board": current_board
@@ -278,7 +279,7 @@ async function getFeed(page) {
 
   data.forEach(post => {
     let post_element = document.createElement("img")
-    post_element.src = `https://nicky.abgl.live/media/${post.file_name}.png`
+    post_element.src = baseurl + `media/${post.file_name}.png`
     post_element.width = 400;
     post_element.className = "post"
     post_element.onclick = function() {interact(post_element)};

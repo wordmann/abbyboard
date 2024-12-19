@@ -1,5 +1,4 @@
 #!/bin/sh
 echo "BALSSSSS"
-cd src
-npm install
+cd ./src
 npm start

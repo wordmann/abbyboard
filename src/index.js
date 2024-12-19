@@ -48,7 +48,7 @@ function generateFilename() {
 
 const getDiscordId = async (token) => {
     const url='https://discord.com/api/users/@me';
-
+v
 	let rawdata
 
 	try{
