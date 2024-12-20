@@ -1,54 +1,60 @@
+require('dotenv').config();
 const path = require('path');
 const express = require('express');
 var bodyParser = require('body-parser');
 const fs = require("fs");
 const { Client } = require('pg');
- 
-const client = new Client({
-  host: 'localhost',
-  port: 5432,
-  database: 'logintest',
-  user: 'postgres',
-  password: 'labrazzi',
-})
 
-client.on('error', (err) => console.log(err));
+// Validate environment variables
+const requiredEnvVars = ['DB_HOST', 'DB_PORT', 'DB_NAME', 'DB_USER', 'DB_PASSWORD', 'PORT', 'HOST'];
+requiredEnvVars.forEach((varName) => {
+  if (!process.env[varName]) {
+    console.error(`Error: Missing required environment variable ${varName}`);
+    process.exit(1);
+  }
+});
+
+const client = new Client({
+  host: process.env.DB_HOST,
+  port: process.env.DB_PORT,
+  database: process.env.DB_NAME,
+  user: process.env.DB_USER,
+  password: process.env.DB_PASSWORD,
+});
+
+client.on('error', (err) => console.error('Database error:', err));
 
 async function connectClient() {
-	await client.connect()
+  try {
+    await client.connect();
+    console.log('Connected to the database');
+  } catch (err) {
+    console.error('Failed to connect to the database:', err);
+    process.exit(1);
+  }
 }
 
-connectClient()
+connectClient();
 
 const app = express();
 
-console.log(__dirname)
-
 // Giving static access to the public dir and the /img storage
-app.use('',express.static(path.join(__dirname, 'public')));
-app.use('/media',express.static(path.join(__dirname, '../img')));
+app.use(express.static(path.join(__dirname, 'public')));
+app.use('/media', express.static(path.join(__dirname, '../img')));
 
-app.use(bodyParser.json({limit: '50mb'}));
-app.use(bodyParser.urlencoded({limit: '50mb', extended: true}));
-
-app.get('/', (request, response) => {
-	return response.sendFile('dashboard.html', { root: '.' });
-});
-
-app.get('/auth/discord', (request, response) => {
-	return response.sendFile('dashboard.html', { root: '.' });
-});
+app.use(bodyParser.json({ limit: '50mb' }));
+app.use(bodyParser.urlencoded({ limit: '50mb', extended: true }));
 
 // Generate a random filename
 function generateFilename() {
-	const timestamp = new Date().getTime();
-	const randomNum = Math.floor(Math.random() * 1000);
-	return (timestamp + "-" + randomNum);
-  }
+  const timestamp = new Date().getTime();
+  const randomNum = Math.floor(Math.random() * 1000);
+  return `${timestamp}-${randomNum}`;
+}
 
 const getDiscordId = async (token) => {
     const url='https://discord.com/api/users/@me';
-v
+
 	let rawdata
 
 	try{
@@ -69,7 +75,7 @@ v
 
 async function discordWHnotif() {
  // i do javascript, you fuck boys we all have our roles , it's nicky time.
-  const url='https://discord.com/api/webhooks/1126515602249494608/WqL0DmQtEyNviZtql-d-EhA9UH3I50BWNJv_vmTBnJHcoJaexJHqHJ-8VA696fAATM-N';
+  const url = process.env.DISCORD_WEBHOOK_URL;
   const data = `{
     "content": "aoooo frociaaaa @everyone hanno postato una foto attenta eh",
     "embeds": null,
@@ -109,17 +115,14 @@ app.post("/api/postimg", async (req, res) => {
 	let skipcheck = false
 	let lpd // last post date
 	try {
-		lpd = 
-			(await client.query(`SELECT created_at FROM posts WHERE id = '${uid}' ORDER BY created_at DESC LIMIT 1`))
-			.rows[0]
-			['created_at'];
+		lpd = (await client.query('SELECT created_at FROM posts WHERE id = $1 ORDER BY created_at DESC LIMIT 1', [uid])).rows[0]['created_at'];
 	} catch (error) {
 		// this happens when the user has no posts, therefore we can skip the check
 		skipcheck = true
 	}
 		
 	// less then 2 minutes 120000ms = 2 mins
-	const postDelay = 20000
+	const postDelay = parseInt(process.env.POST_DELAY)
 	const sinceLast = Date.now() - lpd
 	if (sinceLast < postDelay && !skipcheck)
 	{
@@ -146,7 +149,7 @@ app.post("/api/postimg", async (req, res) => {
 		} else {
 			console.log("img saved :3")	
 			discordWHnotif()														// filaname is used as some sort of post id
-			client.query(`INSERT INTO posts(id, file_name, board) VALUES('${uid}', '${filename}', '${board}');`); 	// add post to posts table in le database (timestamp is automatic)
+			client.query('INSERT INTO posts(id, file_name, board) VALUES($1, $2, $3)', [uid, filename, board]); 	// add post to posts table in le database (timestamp is automatic)
 			updateBoardQty(board)
 			res.status(200).send({outcome:"Post sent succesfully :3"}); return
     	}
@@ -167,7 +170,7 @@ app.post("/api/deletepost", async (req, res) => {
 		let id // ID of the user who made the post that it's trying to delete
 		try {
 			const resp_raw = 
-			(await client.query(`SELECT id FROM posts WHERE file_name='${filename}' LIMIT 1`)) 
+			(await client.query('SELECT id FROM posts WHERE file_name=$1 LIMIT 1', [filename])) 
 		
 			id = (
 			resp_raw
@@ -181,7 +184,7 @@ app.post("/api/deletepost", async (req, res) => {
 		if (id == req_id){ // If the user who made the post and the user that is trying to remove it are the same we can delete the post
 			
 			try {
-				await client.query(`DELETE FROM posts WHERE file_name = '${filename}'`) // Sql post removal
+				await client.query('DELETE FROM posts WHERE file_name = $1', [filename]) // Sql post removal
 			} 
 			catch (error) {	// sql querys always have try catches because for once i'm a little bitch but mainly because it might crash the whole thing 
 				res.status(200).send({ outcome: error}); return
@@ -192,7 +195,7 @@ app.post("/api/deletepost", async (req, res) => {
 		} else if (uFlags.includes('admin')){ // Someone is trying to delete someone elses post. Are they an admin?
 
 			try {
-				await client.query(`DELETE FROM posts WHERE file_name = '${filename}'`) // Sql post removal
+				await client.query('DELETE FROM posts WHERE file_name = $1', [filename]) // Sql post removal
 			} 
 				catch (error) { // these try catches are really ugly but oh well
 					res.status(200).send({ outcome: error}); return
@@ -219,7 +222,7 @@ app.post("/api/ban", async (req, res) => {
 		let id // id of the to-be-banned user
 		try {
 			const resp_raw = 
-			(await client.query(`SELECT id FROM posts WHERE file_name='${filename}' LIMIT 1`))
+			(await client.query('SELECT id FROM posts WHERE file_name=$1 LIMIT 1', [filename]))
 		
 			id = (
 			resp_raw
@@ -231,14 +234,15 @@ app.post("/api/ban", async (req, res) => {
 			}
 
 		try { 					// Adding the 'banned' flag to that used. Making it unable for it to post ever again.
-			await client.query(`INSERT INTO users(id, flags) VALUES('${id}', 'banned') ON CONFLICT(id) DO UPDATE SET flags = 'banned'`)
+			await client.query('INSERT INTO users(id, flags) VALUES($1, $2) ON CONFLICT(id) DO UPDATE SET flags = $3', 
+    [id, 'banned', 'banned'])
 		} 
 			catch (error) {
 				res.status(200).send({ outcome: error}); return
 		}
 
 		try {					// Deleting every post made by the user from the DB
-			await client.query(`DELETE FROM posts WHERE id = '${id}'`)
+			await client.query('DELETE FROM posts WHERE id = $1', [id])
 		} 
 			catch (error) {
 				res.status(200).send({ outcome: error}); return
@@ -258,7 +262,7 @@ async function getFlags(id) {
 	let resp = 'none'
 	try {
 		const resp_raw = 
-		(await client.query(`SELECT flags FROM users WHERE id='${id}' LIMIT 1`))
+		(await client.query('SELECT flags FROM users WHERE id=$1 LIMIT 1', [id]))
 	
 		resp = (
 		resp_raw
@@ -279,7 +283,7 @@ async function getBFlags(id) {
 	let resp = 'none'
 	try {
 		const resp_raw = 
-		(await client.query(`SELECT flags FROM boards WHERE board_id='${id}' LIMIT 1`))
+		(await client.query('SELECT flags FROM boards WHERE board_id=$1 LIMIT 1', [id]))
 	
 		resp = (
 		resp_raw
@@ -314,16 +318,17 @@ async function updateBoardQty(board) {
 	let resp_raw
 	if (board == 'all') {
 		resp_raw = 
-		(await client.query(`SELECT board FROM posts`))
+		(await client.query('SELECT board FROM posts'))
 	} else {
 		resp_raw = 
-		(await client.query(`SELECT board FROM posts WHERE board = '${board}'`))
+		(await client.query('SELECT board FROM posts WHERE board = $1', [board]))
 	}
 	
 	const resp = Array.from(resp_raw.rows)
 	// console.log("board numbers: " + resp.length)
 	// this is just edited ban code
-	await client.query(`INSERT INTO boards(board_id, post_qty) VALUES('${board}', ${resp.length}) ON CONFLICT(board_id) DO UPDATE SET post_qty = ${resp.length}`)
+	await client.query('INSERT INTO boards(board_id, post_qty) VALUES($1, $2) ON CONFLICT(board_id) DO UPDATE SET post_qty = $2',
+    [board, resp.length])
 	
 }
 
@@ -335,7 +340,7 @@ app.get("/api/board", async (req, res) => {
 	await updateBoardQty(board)
 
 	const resp_raw = 
-	(await client.query(`SELECT * FROM boards WHERE board_id = '${board}'`))
+	(await client.query('SELECT * FROM boards WHERE board_id = $1', [board]))
 	// we can just send all the db info for a board who cares anyways
 	const resp = resp_raw.rows[0]
 	res.send(resp)
@@ -351,7 +356,7 @@ app.get("/api/feed", async (req, res) => {
 	if (board == 'all') {
 
 		const resp_raw = 
-		(await client.query(`SELECT * FROM posts ORDER BY created_at DESC LIMIT ${15 * page}`))
+		(await client.query('SELECT * FROM posts ORDER BY created_at DESC LIMIT $1', [15 * page]))
 		// Just sending the whole fucking the WHOLE thing
 		const resp = resp_raw.rows
 		res.send(resp)
@@ -359,7 +364,8 @@ app.get("/api/feed", async (req, res) => {
 	}else{
 
 		const resp_raw = 
-		(await client.query(`SELECT * FROM posts WHERE board = '${board}' ORDER BY created_at DESC LIMIT ${15 * page}`))
+		(await client.query('SELECT * FROM posts WHERE board = $1 ORDER BY created_at DESC LIMIT $2', 
+        [board, 15 * page]))
 		// Just sending the whole fucking the WHOLE thing
 		const resp = resp_raw.rows
 		res.send(resp)
@@ -369,6 +375,5 @@ app.get("/api/feed", async (req, res) => {
 
 });
 
-const port = '19601';
-app.listen(port, () => console.log(`App listening at http://localhost:${port}`));
-
+const port = process.env.PORT;
+app.listen(port, () => console.log(`App listening at http://${process.env.HOST}:${port}`));
